@@ -1,0 +1,387 @@
+Automated Network Request   Management in      ServiceNow 
+ 
+INTRODUCTION: 
+This project provides an automated solution in ServiceNow to manage network-related service requests. Through a self-service portal, users can easily submit requests, which are then validated, approved, and routed for fulfillment. Automated workflows handle approvals, notifications, and task assignments, while optional integrations with network tools reduce manual effort. The system also offers real-time updates and reporting to improve efficiency, transparency, and SLA tracking. 
+ 
+Process 1: Creation of Service Catalog – "Network Request" 
+ Step 1: Navigate to Service Catalog 
+1.	Open the Application Navigator in ServiceNow. 
+2.	Go to: 
+All → Service Catalog → Maintain Items 
+  
+Step 2: Create New Catalog Item 
+1.	Click on New. 
+2.	Fill the following details: 
+o	Name: Network Request 
+o	Catalog: Service Catalog o Category: Network and conncetivity 
+o	Short Description: Network Request Management 3. Click on Save. 
+  
+ Step 3: Configure Variables 
+1.	Open the newly created Network Request catalog item. 
+2.	Scroll down to the Variables related list → Click New for each variable. 
+3.	Fill out the following for each variable: 
+o	Type: Single line text, Choice, Reference, etc. 
+o	Order: e.g., 100, 200, 300 (controls display order) o Question: Label shown on the form o Name: Technical name (used in scripts) 
+Tooltip: Info shown on mouse hover o Example Text: Placeholder help text o Mandatory / Read-Only: As required 
+o	Auto-populate: Use dot-walking for dependent values 
+      
+  
+ 
+Step 4: Variable Types Configuration       
+        Type 	                       Question 	Order 
+Container Start 	Service Details 	200 
+Multiple Choice 	Is this a new network connection or a relocation? 	300 
+Single Line Text 	If this is a relocation, Please provide … 	310 
+Single Line Text 	If this is a relocation, Please provide … 	320 
+Container Start 	Location & Devices Type 	400 
+Single Line Text 	Please provide address here 	410 
+Select Box 	Type of devices 	420 
+Single Line Text 	Provide device details 	430 
+Container Start 	Additional Information 	500 
+ 
+        
+ 
+Step 5: Configure Variable Set – Requester Information 
+  5.1 Create Variable Set 
+1.	Navigate to Variable Sets under Service Catalog. 
+  
+2.	Click on New. 
+3.	Fill the following details: 
+o	Title: Requester information 
+o	Internal Name: requester_information (auto-filled) o Order: 100 o Type: Single Row 
+o	Layout: 2 Columns Wide, one side, then the other 
+Check the box: ✅ Display title 
+4.	Click Submit or Update 
+  
+    Step 5.2: Add Variables to the Variable Set "Requester Information" 
+     After creating the variable set, now it's time to add the variables one by one. 
+1.	Opened on behalf of o Type: Reference o Reference to: User *sys_user+ 
+o	Name: opened_on_behalf_of o Order: 100 o This allows the requester to select a user they are raising the request for. 
+     
+  
+2.	Email ID o Type: Single Line Text o Name: email_id o Order: 200 
+o	This will be auto-filled based on the user selected in "Opened on behalf of". 
+o	You can use a script or dot-walking to populate the email field. 
+3.	User Name 
+o	Type: Single Line Text 
+o	Name: user_name o Order: 300 o This will also be auto-populated based on the user selected. 
+o	Fetch the full name from the User table. 
+4.	Phone Number 
+o	Type: Single Line Text 
+o	Name: phone_number 
+Order: 400 
+o	Same as above, it can be fetched using dot-walking or client script. 
+5.	Proof of Document o Type: Attachment o Name: proof_of_document o Order: 500 o This allows users to upload a file (such as proof or ID documents). 
+     
+  
+When a user is selected in the Opened on behalf of field, we want to automatically populate: 
+•	Email ID 
+•	User Name 
+•	Phone Number 
+Steps to Auto-populate Fields 
+1.Open the Variable Set 
+•	Navigate to: Service Catalog > Catalog Variable Sets 
+•	Open your variable set: Requester Informatio 
+  2.Create a Catalog Client Script 
+•	Navigate to: Service Catalog > Catalog Client Scripts 
+•	Click New 
+•	Fill in details: 
+o	Name: Auto Populate User Info o Applies to: Catalog Item 
+o	Variable Set: Select Requester Information o UI Type: All o Type: onChange 
+     
+  
+3.Configure the Script Fields 
+•	Variable name: opened_on_behalf_of • 	Script: 
+    
+ 
+ Step 6: Catalog UI Policy Configuration 
+Goal: Show " Provide device details here " field when Types of Devices = Others. 
+1.	Navigate to the Network Request catalog item. 
+2.	In the related list, go to Catalog UI Policies → Click New. 
+3.	Fill in: 
+o	Applies to: Catalog Item o Catalog Item: Network Request 
+o	Condition: Types of devices is Others 
+4.	Click Save. 
+ 
+5.	In the related list, click New under UI Policy Actions. 
+6.	Set: 
+o	Catalog Item: Network Request o Variable name: Provide device details here 
+o	Visible: True 
+7.	Click Update to save policy. 
+8.	Test the form to ensure the field appears based on selection. 
+  
+ 
+Process 2: Creation of Table and Fields in ServiceNow 
+>Network Database Table  Step 1: Create a New Table 
+1.	Navigate to the Application Navigator. 
+2.	Type: Tables under the System Definition module. 
+3.	Click on Tables. 
+4.	On the top-right corner, click on New to create a new table. 
+5.	Fill in the table details: 
+o	Label: Network Database Table o Name: Automatically generated (or customize if needed). 
+o	Keep Auto-generate schema checked. 
+6.	Click Submit to create the table.  
+     
+  
+ 
+Step 2: Add custom fields 
+These fields are custom fields that you will manually add in the Table Columns section of your custom table. 
+1.	Name: u_request_number 
+•	Label: Request Number 
+•	Type: String 
+•	Reference: — 
+•	Explanation: A unique identifier for the request. Can be filled manually or auto-generated using a Business Rule. 
+2.	Name: u_assignment_group 
+•	Label: Assignment Group 
+•	Type: Reference 
+•	Reference: Group (Group table) 
+•	Explanation: Defines the team or group responsible for fulfilling the request. 
+3.	Name: u_customer_document 
+•	Label: Customer Document 
+•	Type: String 
+•	Reference: — 
+•	Explanation: Stores a document reference or identifier related to the customer, such as an ID proof or contract reference 
+4.	Name: u_assigned_to 
+•	Label: Assigned To 
+•	Type: Reference 
+•	Reference: User(User table) 
+•	Explanation: The specific user assigned to handle the request. 
+5.	Name: u_device_details • 	Label: Device Details 
+•	Type: String 
+•	Reference: — 
+•	Explanation: Captures technical details or specifications of the device involved in the request. 
+6.	Name: u_date_of_enquiry 
+•	Label: Date of Enquiry 
+•	Type: Date 
+•	Reference: — 
+•	Explanation: The date when the enquiry was received from the customer. 
+7.	Name: u_customer_address 
+•	Label: Customer Address 
+•	Type: String 
+•	Reference: — 
+•	Explanation: The physical or mailing address of the customer. 
+8.	Name: u_approval_state 
+•	Label: Work Status 
+•	Type: String 
+•	Reference: — 
+•	Explanation: Indicates the current approval or work status of the request. 
+9.	Name: u_requested_for 
+•	Label: Requested For 
+•	Type: String (Normally this should be a Reference to sys_user, but in your screenshot it’s String) 
+•	Reference: — (unless you change it to a Reference type) 
+•	Explanation: Specifies the end-user for whom the request is being made. 
+ 
+To Autopopulate Database Number 
+ Using Number Maintenance 
+ServiceNow has a built-in feature called Number Maintenance to manage auto-number sequences for any table. 
+1.	Navigate to: 
+System Definition > Number Maintenance. 
+2.	Click New. 
+3.	Fill in details: o Table → select your Network Database Table. 
+o	Prefix → NET. o Current Value → 1003 (or any starting number you want). 
+o	Number of Digits → 7. 
+4. Save. 
+  
+    Network Task Table 
+     Step 1: Create the Child Table (Network Task Table) 
+1.	Navigate to: 
+System Definition > Tables 
+2.	Click New. 
+3.	Fill in details: 
+o Label → Network Task Table o Name → auto-generated (u_network_task_table) o Extends Table → select Network Database Table 
+(u_network_database_table) 
+This is the important part → by choosing Extends Table, your Network Task Table will automatically inherit all fields from the parent. 
+4.	Save the record. 
+  
+ 
+    Step 2: Verify Inherited Fields 
+•	Open the new table (Network Task Table). 
+•	Go to Columns tab. 
+•	You’ll see: 
+o Fields from parent (Database Number, Request Number, Request 
+For, etc.) o Plus any new fields you add specifically for tasks (Task Number, Work Status, Assigned to, etc.). 
+  
+  
+ 
+  Step 3: Configure Auto Numbering for Task Table 
+   If you want separate auto numbering for Network Tasks (like NTT0001001): 
+1.	Navigate to System Definition > Number Maintenance. 
+2.	Click New. 
+3.	Fill details: 
+o Table → Network Task Table o Prefix → NTT o Current Value → 1001 o Number of Digits → 7 
+4.	Save. 
+Now each task will have a unique Task Number (NTT0001001, NTT0001002 …). 
+ 
+Step 4: Adjust the Form Layout 
+1.	Open a record in Network Task Table. 
+2.	Right-click the header → Configure > Form Layout. 
+3.	Add inherited fields (Database Number, Request Number, etc.) and new fields (Task Number, Work Notes, etc.). 
+4.	Arrange as you like. 
+  
+  
+ 
+Process 3: Request Approvals Creation 
+The goal is to display approval records directly on the Network Database table form. 
+By creating a relationship between Network Database Table and Approval (sysapproval_approver): 
+•	We can see which approvals are associated with each record. 
+•	We avoid searching in a separate table. 
+•	The refineQuery ensures only relevant approvals (based on source table and document ID) are shown. 
+Steps to Create the Related List with Script 
+1.	Navigate to Relationships 
+1.	Go to System Definition → Relationships. 
+2.	Click New. 
+2.	Fill in the Relationship Details 
+•	Name → Request Approvals 
+•	Applies to table → Network Database Table *u_user_network_database+ 
+•	Queries from table → Approval *sysapproval_approver+ 
+•	Active →  Checked. 
+3. Add the refineQuery Script 
+The script filters the approvals to only show records related to the current Network Database record. (function refineQuery(current, parent) , 
+    current.addQuery('source_table', parent.getTableName());     current.addQuery('document_id', parent.sys_id); 
+-)(current, parent); 
+Script Explanation: 
+•	source_table → Ensures only approvals linked to this specific table are fetched. 
+•	document_id → Matches the approval record to the exact parent record. 
+•	state filter (commented out) → Can exclude approvals not required. 
+4. Save and Verify 
+1.	Click Update. 
+2.	Open a Network Database Table record. 
+3.	You should see the Request Approvals related list populated with the matching approval entries. 
+Steps to Add the Related List to the Form 
+1.	Open any record from the Network Database Table. 
+2.	Click the context menu (three dots in the top right of the form). 
+3.	Navigate to Configure > Related Lists. 
+4.	In the list of available related lists, select Approval Request. 
+5.	Save the form configuration. 
+6.	Refresh the record — you should now see the Request Approvals related list at the bottom of the form, displaying: 
+o	State o Approver o Comments 
+o	Approval for 
+o	Created 
+  
+Creation & Implementation of Flows, Actions in Flow Designer 
+Flow Designer in ServiceNow to automate the Network Request process. The flow manages the entire lifecycle of a request — from capturing catalog variables, creating a record in the Network Database, sending notifications, requesting approvals, handling logic conditions, and updating records — all without manual intervention. 
+This ensures: 
+•	Consistency in processing requests 
+•	Faster execution 
+•	Fewer manual errors 
+•	Clear traceability of actions 
+Steps to Create the Flow 
+1. Creating the Flow 
+1.	Navigate to Flow Designer home page. 
+2.	Click New to create a new flow. 
+3.	Enter: 
+o	Flow Name: Network Request 
+o	Description: (e.g., Automates network request creation, approvals, and updates.) 
+4. Click Build Flow. 
+  
+2. Configuring the Trigger 
+1.	Click the (+) icon to add a trigger. 
+2.	Select: o Trigger Type: Application → Service Catalog 3. Click Done. 
+  
+3.	Adding Actions 
+A. Get Catalog Variables 
+1.	Click Actions. 
+2.	Search for Get Catalog Variables. 
+3.	Select Get Catalog Variables. 
+4.	Configure Action Inputs: o Trigger → Service Catalog → Requested Item 
+5.	In Template catalog items: 
+o Select Table: Network Request o Move required variables to the Selected area. 
+6.	Click Done. 
+  
+B. Create Record 
+1.	Add a new action → Create Record. 
+2.	Select Table: Network Database. 
+3.	Click Add Fields and configure: 
+o Map catalog variables to the respective table fields as per your requirements . 
+4.	Click Done. 
+  
+C. Send Email 
+1.	Add a new action → Send Email. 
+2.	Target Record: Select → Create Record → Network Database Table (auto-selected). 
+3.	Configure: 
+o	To / CC / BCC: Static or dynamic recipients. 
+o	Subject & Body: Use variables and static text as shown in the design screenshot. 
+4.	Click Done 
+  
+D. Ask for Approvals 
+1.	Add a new action → Ask for Approval. 
+2.	Target Record: Create Record → Network Database Table. 
+3.	Configure: 
+o	Approval Reason: "Waiting for Approval". o Approval Rules: Approve, Reject, Approve/Reject. 
+o	Approval Type: Anyone approves, Everyone approves, etc. (static/dynamic assignment). o Here we chose abel tuter 
+       
+4.	Click Done 
+  
+E. Flow Logic (If Condition) 
+1.	Add a new action → Flow Logic → If Condition. 
+2.	Configure: o Condition: "Ask for approvals" state is Approved . 
+3.	Click Done. 
+  
+F. Update Record 
+1.	Add a new action → Update Record. 
+2.	Target Record: Create Record → Network Database Table (autoselected). 
+3.	Configure required fields (like Assigned to -> Abraham Lincoln Work Status -> Work in Progress). 
+4.	Click Done. 
+  
+   G: Create Network Task Table Record 
+1.	Add a new action → Create Record. 
+2.	Select Table → Network Task Table [u_network_task]. 
+3.	Under Fields, map Service Catalog variables to the table fields: 
+o	Database Number → Auto-populated (Number Maintenance / Business Rule). 
+o	Request Number → Map from Catalog Variable (e.g., Request Number). 
+o	Requested For → Map from Catalog Variable (Requested For). 
+o	Description → Map from Catalog Variable (Description of request). 
+o	Priority → Map from Catalog Variable (Priority). 
+o	Assignment Group → Network Assignment Group (static or from variable). 
+o	Assigned To → Leave blank initially (will be set later after approval). 
+4.	Click Done. 
+  
+H.	Send Email (Request Created) 
+1.	Add a new action → Send Email. 
+2.	Target Record → Create Network Task Table Record. 
+3.	Configure: 
+o	To: Requestor / Requested For. 
+o	Subject: "Your Network Task has been created." o Body: Include Task Number, Database Number, Request Number. 
+4.	Click Done. 
+  
+I.	Ask for Approval 
+1.	Add a new action → Ask For Approval. 
+2.	Target Record → Network Task Table Record. 
+3.	Configure: 
+o	Approval Reason: "Waiting for Network Task approval". o Approval Rules: Approve / Reject. 
+o	Approval Type: Choose (e.g., Anyone Approves). 
+4.	Click Done. 
+  
+  
+ 
+J.	If Condition – Approval Status Changes 
+1.	Add action → If Condition. 
+2.	Condition → Approval State is Approved. 
+3.	In the Then branch: 
+Update Record 
+o	Target Record → Network Task Table Record. 
+o	Update fields: 
+	Assigned To → Adam Ringle. 
+	Work Status → Work in Progress. 
+o	Click Done. 
+Send Email (Approved) o Add action → Send Email. 
+o	Notify requestor that the task is approved and in progress. (same as above) 
+  
+K.	If Condition – Request Rejected 
+1.	Add another If Condition for Approval State is Rejected. 
+2.	In the Then branch: 
+Send Email (Rejected) 
+o	Notify requestor that their request was rejected. 
+o	Optionally include rejection comments. 
+   
+OVERALL FLOW: 
+  
+ 
+                              
+Summary 
+This project delivers an efficient ServiceNow-based solution for handling network service requests. By using a dedicated service catalog, automated approval workflows, and real-time notifications, it streamlines the request process for both users and technicians. The system ensures accurate request capture, faster resolution through automation, and better visibility with reporting and SLA tracking. 
+  
+                                                                                                    
+  
+ 
+
